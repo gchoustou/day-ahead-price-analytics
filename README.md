@@ -6,10 +6,11 @@ Greek bidding zone (GR).
 
 ## Overview
 
-- **Data**: hourly day-ahead prices (document type `A44`) via the ENTSO-E REST API.
-- **Pipeline**: raw XML -> parsed hourly series (Parquet) -> EDA -> feature
-  engineering -> forecasting models (naive baseline vs Ridge vs Gradient
-  Boosting) -> evaluation and plots.
+- **Data**: hourly day-ahead prices (document type `A44`), downloaded with the
+  [`entsoe-py`](https://github.com/EnergieID/entsoe-py) client.
+- **Pipeline**: monthly API downloads (Parquet) -> merge & clean -> EDA ->
+  feature engineering -> forecasting models (naive baseline vs Ridge vs
+  Gradient Boosting) -> evaluation and plots.
 - **Purpose**: end-to-end portfolio project — data ingestion from a public API,
   storage in Parquet, analysis with pandas, modelling with scikit-learn, and
   version control with Git/GitHub. Non-commercial.
@@ -19,12 +20,12 @@ Greek bidding zone (GR).
 ```
 day-ahead-price-analytics/
 ├── data/                  # local data (git-ignored)
-│   ├── raw/               # raw XML + parsed monthly prices
+│   ├── raw/               # monthly downloaded price files (Parquet)
 │   └── processed/         # merged, cleaned price series
 ├── notebooks/
 │   └── 01_eda.ipynb       # exploratory data analysis
 ├── src/
-│   ├── fetch_entsoe.py    # download prices from the ENTSO-E API
+│   ├── fetch_entsoe.py    # download day-ahead prices via entsoe-py
 │   ├── etl.py             # merge + clean -> single Parquet
 │   ├── features.py        # calendar + lag features
 │   └── train.py           # model training + evaluation
