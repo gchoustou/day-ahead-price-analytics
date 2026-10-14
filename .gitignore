@@ -1,0 +1,14 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# jupyter
+.ipynb_checkpoints/
+
+# data (fetch locally with your own ENTSO-E API token)
+data/
