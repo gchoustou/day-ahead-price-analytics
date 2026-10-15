@@ -22,21 +22,36 @@ def load_raw(zone: str) -> pd.DataFrame:
     files = sorted(RAW_DIR.glob(f"prices_{zone}_*.parquet"))
     if not files:
         raise SystemExit(f"No raw files for zone {zone} — run src/fetch_entsoe.py first.")
-    df = pd.concat((pd.read_parquet(f) for f in files), ignore_index=True)
+    frames = []
+    for f in files:
+        part = pd.read_parquet(f)
+        if "timestamp_utc" not in part.columns:
+            part = part.reset_index()
+        frames.append(part)
+    df = pd.concat(frames, ignore_index=True)
+    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], utc=True)
     df = df.drop_duplicates("timestamp_utc", keep="last").sort_values("timestamp_utc")
     return df.reset_index(drop=True)
 
 
-def clean(df: pd.DataFrame) -> pd.DataFrame:
-    """Reindex to a complete hourly grid so gaps become explicit NaN rows."""
+def to_hourly(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalise everything to hourly means on a complete UTC grid.
+
+    ENTSO-E switched day-ahead prices to 15-minute resolution (SDAC 15-min
+    MTU) on 1 Oct 2025, so recent months carry four values per hour while
+    older ones carry one. Resampling to hourly yields a single consistent
+    series (identity for hourly months, mean of up to four points for
+    15-minute months). Gaps become explicit NaN rows.
+    """
     df = df.set_index("timestamp_utc")
-    full_index = pd.date_range(df.index.min(), df.index.max(), freq="h", tz="UTC")
-    df = df.reindex(full_index)
-    missing = int(df["price_eur_mwh"].isna().sum())
+    n_raw = len(df)
+    hourly = df["price_eur_mwh"].resample("1h").mean()
+    print(f"Resolution normalisation: {n_raw} raw rows -> {len(hourly)} hourly rows")
+    missing = int(hourly.isna().sum())
     if missing:
         print(f"Warning: {missing} missing hours kept as NaN (interpolate later if needed)")
-    df.index.name = "timestamp_utc"
-    return df.reset_index()
+    hourly.index.name = "timestamp_utc"
+    return hourly.reset_index()
 
 
 def main(argv=None):
@@ -44,7 +59,7 @@ def main(argv=None):
     parser.add_argument("--zone", default="GR")
     args = parser.parse_args(argv)
 
-    df = clean(load_raw(args.zone))
+    df = to_hourly(load_raw(args.zone))
     df["timestamp_local"] = df["timestamp_utc"].dt.tz_convert("Europe/Athens")
     df = df[["timestamp_utc", "timestamp_local", "price_eur_mwh"]]
 

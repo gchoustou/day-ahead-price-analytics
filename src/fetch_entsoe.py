@@ -59,6 +59,7 @@ def fetch(client: EntsoePandasClient, zone: str, start: date, end: date, out_dir
 
         series = client.query_day_ahead_prices(zone, start=ts_start, end=ts_end)
         frame = pd.Series(series.values, index=series.index, name="price_eur_mwh").to_frame()
+        frame.index = frame.index.tz_convert("UTC")
         frame.index.name = "timestamp_utc"
         frame.to_parquet(fname)
 

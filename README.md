@@ -71,3 +71,6 @@ key insights on hourly / weekly / seasonal patterns and negative prices.)_
 
 - All timestamps kept in UTC, with a local (Europe/Athens) index alongside.
 - Missing hours are made explicit during the ETL step (no silent gaps).
+- From 1 Oct 2025 ENTSO-E publishes day-ahead prices at 15-minute resolution
+  (SDAC 15-min MTU); `etl.py` aggregates to hourly means for one consistent
+  series across the whole history.
